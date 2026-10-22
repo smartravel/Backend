@@ -1,0 +1,25 @@
+[database]
+postgres_username = "user"
+postgres_password = "password"
+postgres_db = "smarttravel"
+postgres_host = "localhost"
+postgres_port = 5432
+echo = true
+
+[jwt]
+secret_key = "change-me"
+algorithm = "HS256"
+access_token_expire_minutes = 30
+refresh_token_expire_days = 7
+
+[cors]
+origins = ["http://localhost:5173"]
+
+[cookies]
+secure = false
+
+[redis]
+host = "localhost"
+port = 6379
+password = ""
+db = 0
