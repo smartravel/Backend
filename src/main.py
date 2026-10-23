@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import config
 from src.core.database import engine
 from src.core.redis import redis_client
-
+from src.api.routers.auth import router as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +16,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartTravel API", lifespan=lifespan)
+
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
