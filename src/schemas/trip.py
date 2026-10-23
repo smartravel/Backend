@@ -20,7 +20,6 @@ class TripCreateRequest(BaseModel):
             raise ValueError("End date must be after start date")
         return self
 
-
 class TripJoinRequest(BaseModel):
     invite_token: str = Field(..., min_length=1, max_length=32)
     password: str = Field(..., max_length=64)
@@ -40,7 +39,7 @@ class TripCardResponse(BaseModel):
     days_left: int | None
     my_role: TripRole
     members_count: int
-    members_preview: list[UserShortResponse]
+    members: list[UserShortResponse]
 
 class TripCountsResponse(BaseModel):
     all: int
