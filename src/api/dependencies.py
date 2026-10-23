@@ -4,6 +4,7 @@ from fastapi import Cookie
 
 from src.core.uow import get_uow
 from src.services.auth import AuthService
+from src.services.trip import TripService
 from src.core.security import decode_token
 from src.core.exceptions import Unauthed
 
@@ -19,3 +20,7 @@ async def get_current_user_id(access_token: Optional[str] = Cookie(default=None)
     if not payload or payload.get("type") != "access":
         raise Unauthed
     return UUID(payload["sub"])
+
+async def get_trip_service() -> AsyncIterator[TripService]:
+    async with get_uow() as uow:
+        yield TripService(uow)
