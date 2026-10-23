@@ -7,7 +7,7 @@ from src.core.database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column("id", primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(Text)
     nickname: Mapped[str] = mapped_column(String(50))
