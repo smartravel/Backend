@@ -4,13 +4,21 @@ from datetime import date
 from uuid import UUID
 
 from src.core.enums import TripRole
-from src.core.exceptions import NotTripMember, TooManyAttempts, TripNotFound, WrongTripPassword
+from src.core.exceptions import (
+    MemberNotFound,
+    NotTripOrganizer,
+    OrganizerCannotLeave,
+    TooManyAttempts,
+    TripNotFound,
+    WrongTripPassword,
+)
 from src.core.redis import redis_service
 from src.core.security import hash_password, verify_password
 from src.core.uow import UnitOfWork
 from src.dto.trip import TripCardDTO, TripCountsDTO, TripDetailDTO, TripDTO, TripListDTO
-from src.dto.trip_member import TripMemberDTO
+from src.dto.trip_member import TripAccessDTO, TripMemberDTO
 from src.utils.dates import days_until, today, trip_status
+from src.ws.manager import ws_manager
 
 MAX_JOIN_ATTEMPTS = 5
 JOIN_ATTEMPTS_WINDOW = 15 * 60
@@ -82,19 +90,44 @@ class TripService:
 
         await redis_service.delete(attempts_key)
         await self.uow.trip_member.add(trip.id, user_id, TripRole.MEMBER)
+        detail = await self._to_detail(trip, TripRole.MEMBER)
+        await self.uow.commit()
 
-        return await self._to_detail(trip, TripRole.MEMBER)
+        joined = next(member for member in detail.members if member.user_id == user_id)
+        await ws_manager.broadcast(trip.id, "member.joined", {"member": joined})
 
-    async def get_trip(self, user_id: UUID, trip_id: UUID) -> TripDetailDTO:
-        trip = await self.uow.trip.get_by_id(trip_id)
+        return detail
+
+    async def get_trip(self, access: TripAccessDTO) -> TripDetailDTO:
+        trip = await self.uow.trip.get_by_id(access.trip_id)
         if not trip:
             raise TripNotFound
 
-        role = await self.uow.trip_member.get_role(trip_id, user_id)
-        if not role:
-            raise NotTripMember
+        return await self._to_detail(trip, access.role)
 
-        return await self._to_detail(trip, role)
+    async def list_members(self, trip_id: UUID) -> list[TripMemberDTO]:
+        return await self.uow.trip_member.list_by_trip(trip_id)
+
+    async def remove_member(self, access: TripAccessDTO, member_user_id: UUID) -> None:
+        member_role = await self.uow.trip_member.get_role(access.trip_id, member_user_id)
+        if not member_role:
+            raise MemberNotFound
+
+        is_self = member_user_id == access.user_id
+        if is_self and access.role == TripRole.ORGANIZER:
+            raise OrganizerCannotLeave
+        if not is_self and access.role != TripRole.ORGANIZER:
+            raise NotTripOrganizer
+
+        await self.uow.trip_member.delete(access.trip_id, member_user_id)
+        await self.uow.commit()
+
+        await ws_manager.kick(access.trip_id, member_user_id)
+        await ws_manager.broadcast(
+            access.trip_id,
+            "member.left",
+            {"user_id": member_user_id, "kicked": not is_self},
+        )
 
     async def _to_detail(self, trip: TripDTO, role: TripRole) -> TripDetailDTO:
         members = await self.uow.trip_member.list_by_trip(trip.id)

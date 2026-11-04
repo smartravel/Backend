@@ -1,6 +1,8 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, status
-from src.api.dependencies import get_current_user_id, get_trip_service
+
+from src.api.dependencies import get_current_user_id, get_trip_service, require_trip_member
+from src.dto.trip_member import TripAccessDTO
 from src.schemas.trip import TripCreateRequest, TripJoinRequest, TripListResponse, TripResponse
 from src.services.trip import TripService
 
@@ -38,8 +40,7 @@ async def join_trip(
 
 @router.get("/{trip_id}", response_model=TripResponse, status_code=status.HTTP_200_OK)
 async def get_trip(
-    trip_id: UUID,
-    user_id: UUID = Depends(get_current_user_id),
+    access: TripAccessDTO = Depends(require_trip_member),
     service: TripService = Depends(get_trip_service),
 ):
-    return await service.get_trip(user_id, trip_id)
+    return await service.get_trip(access)
