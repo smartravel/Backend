@@ -32,3 +32,15 @@ class TooManyAttempts(HTTPException):
     def __init__(self, retry_after: int):
         super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts, try it later",
                          headers={"Retry-After": str(max(retry_after, 1))})
+
+class NotTripOrganizer(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Only organizer can do this")
+
+class MemberNotFound(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+class OrganizerCannotLeave(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_409_CONFLICT, detail="Organizer can't leave the trip")

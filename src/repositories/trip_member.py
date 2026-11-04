@@ -1,5 +1,5 @@
 from uuid import UUID
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import joinedload
 from src.core.enums import TripRole
 from src.dto.trip_member import TripMemberDTO
@@ -49,6 +49,13 @@ class TripMemberRepository(BaseRepository):
     async def add(self, trip_id: UUID, user_id: UUID, role: TripRole = TripRole.MEMBER) -> None:
         self._session.add(TripMember(trip_id=trip_id, user_id=user_id, role=role))
         await self._session.flush()
+
+    async def delete(self, trip_id: UUID, user_id: UUID) -> bool:
+        result = await self._session.execute(
+            delete(TripMember).where(TripMember.trip_id == trip_id, TripMember.user_id == user_id)
+        )
+
+        return result.rowcount > 0
 
     @staticmethod
     def _to_dto(member: TripMember) -> TripMemberDTO:

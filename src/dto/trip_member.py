@@ -11,3 +11,9 @@ class TripMemberDTO:
     avatar_emoji: str | None
     role: TripRole
     joined_at: datetime
+
+@dataclass
+class TripAccessDTO:
+    trip_id: UUID
+    user_id: UUID
+    role: TripRole
